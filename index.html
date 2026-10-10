@@ -25,21 +25,14 @@
         <span class="ln"><span>내 공간</span></span>
         <span class="ln"><span>스타일 찾기</span></span>
       </h1>
+      <p class="lede">우리 집, 어떤 스타일로 꾸며야 할지 막막하다면 질문 8개에 답해 보세요.</p>
+      <p class="meta">약 2분이면 끝나고, 결과는 바로 나와요.</p>
+      <a class="btn" href="/test">테스트 시작하기</a>
+    </section>
 
-      <div class="hero-row">
-        <div>
-          <p class="lede">우리 집, 어떤 스타일로 꾸며야 할지 막막하다면 질문 8개에 답해 보세요.</p>
-          <p class="meta">약 2분이면 끝나고, 결과는 바로 나와요.</p>
-          <a class="btn" href="/test">테스트 시작하기</a>
-        </div>
-
-        <div class="doors" aria-label="결과로 나올 수 있는 세 가지 스타일">
-          <figure><div class="door minimal" data-art="minimal"></div><figcaption>미니멀·모던</figcaption></figure>
-          <figure><div class="door natural" data-art="natural"></div><figcaption>내추럴·우드</figcaption></figure>
-          <figure><div class="door vintage" data-art="vintage"></div><figcaption>빈티지·미드센추리</figcaption></figure>
-          <p class="doors-note">이 세 가지 중 하나가 나와요.</p>
-        </div>
-      </div>
+    <section class="rail" aria-label="결과로 나올 수 있는 세 가지 스타일: 미니멀·모던, 내추럴·우드, 빈티지·미드센추리">
+      <div class="track" id="track" aria-hidden="true"></div>
+      <p class="wrap rail-note">이 세 가지 스타일 중 하나가 나와요.</p>
     </section>
 
     <section class="wrap get">
@@ -62,7 +55,11 @@
 
   <script src="/assets/art.js"></script>
   <script>
-    document.querySelectorAll('[data-art]').forEach((el) => { el.innerHTML = window.STYLE_ART[el.dataset.art]; });
+    // 흐르는 방문 줄: 세 스타일을 두 번씩 놓고, 끊김 없이 돌도록 한 벌 더 붙인다
+    const NAMES = { minimal: '미니멀·모던', natural: '내추럴·우드', vintage: '빈티지·미드센추리' };
+    const set = ['natural', 'vintage', 'minimal', 'vintage', 'natural', 'minimal'];
+    const html = set.map((k) => `<figure><div class="door ${k}">${window.STYLE_ART[k]}</div><figcaption>${NAMES[k]}</figcaption></figure>`).join('');
+    document.getElementById('track').innerHTML = html + html;
   </script>
 </body>
 </html>

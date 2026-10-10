@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>관리자 — 공간 스타일 진단</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;700;800&display=swap">
+  <style>
+    :root { --paper:#FAF8F5; --plaster:#EEE9E2; --ink:#2E2723; --muted:#6F655C; --line:rgba(46,39,35,.14); --warn:#9A2D1F; }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.6 'Gothic A1', 'Apple SD Gothic Neo', sans-serif; word-break: keep-all; }
+    main { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+    h1 { font-size: 20px; margin: 0 0 24px; letter-spacing: -0.02em; }
+    button, input { font: inherit; color: inherit; }
+    :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .login { display: grid; gap: 12px; max-width: 360px; }
+    .login input { min-height: 52px; padding: 0 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; font-size: 16px; }
+    .btn { min-height: 48px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); font-weight: 700; cursor: pointer; }
+    .btn.line { background: transparent; color: var(--ink); border-color: var(--line); }
+    .err { color: var(--warn); margin: 0; min-height: 1.6em; }
+    .summary { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-end; padding-bottom: 20px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+    .big { font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -0.04em; }
+    .label { color: var(--muted); font-size: 14px; }
+    .counts { display: flex; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 15px; }
+    .counts b { color: var(--ink); }
+    .note { background: var(--plaster); border-radius: 12px; padding: 12px 16px; margin: 0 0 16px; font-size: 15px; }
+    .tools { display: flex; gap: 8px; justify-content: space-between; margin-bottom: 12px; }
+    .card { border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 12px; background: #fff; }
+    .card.new { border-color: var(--ink); }
+    .row1 { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 14px; }
+    .email { display: block; margin: 6px 0 4px; font-size: 18px; font-weight: 700; background: none; border: 0; padding: 0; text-align: left; cursor: copy; word-break: break-all; }
+    .style { font-size: 15px; }
+    .mail { font-size: 14px; margin-top: 6px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .mail .fail { color: var(--warn); }
+    .mail button { min-height: 36px; padding: 0 12px; font-size: 14px; }
+    .status { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+    .status button { min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: transparent; cursor: pointer; font-size: 15px; }
+    .status button.on { background: var(--ink); color: var(--paper); border-color: var(--ink); font-weight: 700; }
+    .empty { color: var(--muted); padding: 32px 0; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>공간 스타일 진단 · 관리자</h1>
+
+    <form class="login" id="login">
+      <label for="pw">관리자 비밀번호</label>
+      <input type="password" id="pw" autocomplete="current-password" required>
+      <button class="btn" type="submit">들어가기</button>
+      <p class="err" id="loginErr" role="alert"></p>
+    </form>
+
+    <section id="board" hidden>
+      <div class="summary">
+        <div><div class="big" id="newCount">0</div><div class="label">새 신청</div></div>
+        <div class="counts" id="counts"></div>
+      </div>
+      <p class="note" id="mailNote" hidden>메일 설정이 아직 없어서 추천 아이템 메일은 자동으로 나가지 않아요. 신청은 저장되고, 설정을 넣으면 여기서 ‘메일 보내기’를 누를 수 있어요.</p>
+      <div class="tools">
+        <button class="btn line" type="button" id="reload">새로고침</button>
+        <button class="btn line" type="button" id="logout">나가기</button>
+      </div>
+      <p class="err" id="boardErr" role="alert"></p>
+      <div id="list"></div>
+    </section>
+  </main>
+
+  <script src="/assets/data.js"></script>
+  <script>
+    const { STYLES } = window.STYLE_DATA;
+    const STATUSES = ['새 문의', '연락함', '완료'];
+    const LABEL = { '새 문의': '새 신청', '연락함': '연락함', '완료': '완료' };
+    const $ = (id) => document.getElementById(id);
+    let pw = '';
+    let mailReady = false;
+    try { pw = sessionStorage.getItem('adminPw') || ''; } catch (e) {}
+
+    async function api(method, body) {
+      const r = await fetch('/api/admin', {
+        method,
+        headers: { 'x-admin-password': pw, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.status === 401) { logout('비밀번호가 맞지 않아요.'); throw new Error(''); }
+      if (!r.ok) throw new Error(data.error || '요청을 처리하지 못했어요.');
+      return data;
+    }
+
+    function logout(message) {
+      pw = '';
+      try { sessionStorage.removeItem('adminPw'); } catch (e) {}
+      $('board').hidden = true;
+      $('login').hidden = false;
+      $('loginErr').textContent = message || '';
+      $('pw').value = '';
+      $('pw').focus();
+    }
+
+    const fmt = (iso) => new Date(iso).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    function render(rows) {
+      $('newCount').textContent = rows.filter((r) => r.status === '새 문의').length;
+      const by = {};
+      rows.forEach((r) => { by[r.style] = (by[r.style] || 0) + 1; });
+      $('counts').innerHTML = `<span>전체 <b>${rows.length}</b></span>` +
+        Object.keys(STYLES).map((k) => `<span>${STYLES[k].name} <b>${by[k] || 0}</b></span>`).join('');
+      $('mailNote').hidden = mailReady;
+
+      const list = $('list');
+      list.innerHTML = '';
+      if (!rows.length) { list.innerHTML = '<p class="empty">아직 신청이 없어요. 결과 화면에서 이메일을 남기면 여기에 쌓여요.</p>'; return; }
+      rows.forEach((r) => {
+        const card = document.createElement('article');
+        card.className = 'card' + (r.status === '새 문의' ? ' new' : '');
+        const mailState = r.mail_sent_at ? `메일 보냄 · ${fmt(r.mail_sent_at)}`
+          : r.mail_error ? '<span class="fail">메일 실패</span>' : '메일 대기';
+        card.innerHTML = `
+          <div class="row1"><span>${fmt(r.created_at)}</span><span>${LABEL[r.status] || r.status}</span></div>
+          <button class="email" type="button" title="눌러서 복사"></button>
+          <div class="style"></div>
+          <div class="mail"><span>${mailState}</span></div>
+          <div class="status"></div>`;
+        card.querySelector('.email').textContent = r.email;
+        card.querySelector('.style').textContent = STYLES[r.style] ? STYLES[r.style].name : r.style;
+        card.querySelector('.email').addEventListener('click', async (e) => {
+          try { await navigator.clipboard.writeText(r.email); e.target.textContent = '복사했어요'; setTimeout(() => { e.target.textContent = r.email; }, 1200); }
+          catch (err) { const sel = getSelection(); const rg = document.createRange(); rg.selectNodeContents(e.target); sel.removeAllRanges(); sel.addRange(rg); }
+        });
+        if (mailReady && !r.mail_sent_at) {
+          const send = document.createElement('button');
+          send.className = 'btn line';
+          send.type = 'button';
+          send.textContent = r.mail_error ? '다시 보내기' : '메일 보내기';
+          send.addEventListener('click', async () => {
+            send.disabled = true;
+            try { await api('POST', { action: 'send', id: r.id }); load(); }
+            catch (err) { $('boardErr').textContent = err.message; send.disabled = false; }
+          });
+          card.querySelector('.mail').appendChild(send);
+        }
+        STATUSES.forEach((s) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.textContent = LABEL[s];
+          if (r.status === s) b.className = 'on';
+          b.addEventListener('click', async () => {
+            if (r.status === s) return;
+            try { await api('PATCH', { id: r.id, status: s }); load(); }
+            catch (err) { $('boardErr').textContent = err.message; }
+          });
+          card.querySelector('.status').appendChild(b);
+        });
+        list.appendChild(card);
+      });
+    }
+
+    async function load() {
+      $('boardErr').textContent = '';
+      try {
+        const data = await api('GET');
+        mailReady = data.mailReady;
+        $('login').hidden = true;
+        $('board').hidden = false;
+        render(data.rows);
+      } catch (err) {
+        if (err.message) {
+          if ($('board').hidden) $('loginErr').textContent = err.message;
+          else $('boardErr').textContent = err.message;
+        }
+      }
+    }
+
+    $('login').addEventListener('submit', (e) => {
+      e.preventDefault();
+      pw = $('pw').value;
+      try { sessionStorage.setItem('adminPw', pw); } catch (err) {}
+      $('loginErr').textContent = '';
+      load();
+    });
+    $('reload').addEventListener('click', load);
+    $('logout').addEventListener('click', () => logout());
+    if (pw) load(); else $('pw').focus();
+  </script>
+</body>
+</html>
