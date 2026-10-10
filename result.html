@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>내 공간 스타일 — 공간 스타일 진단</title>
+  <meta name="description" content="공간 스타일 진단 결과. 질문 8개로 나에게 맞는 인테리어 스타일을 찾아보세요.">
+  <meta property="og:title" content="내 공간 스타일 결과 — 공간 스타일 진단">
+  <meta property="og:description" content="질문 8개, 약 2분. 나도 내 인테리어 스타일을 찾아보세요.">
+  <meta name="theme-color" content="#FAF8F5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&family=Gowun+Batang:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <header class="wrap top">
+    <a class="mark" href="/">공간 스타일 진단</a>
+  </header>
+
+  <main class="wrap result">
+    <div class="door" id="door"></div>
+
+    <div>
+      <p class="kicker" id="kicker">당신의 공간 스타일은</p>
+      <h1 class="sname" id="sname"></h1>
+      <p class="sline" id="sline"></p>
+      <p class="sdesc" id="sdesc"></p>
+
+      <dl class="facts">
+        <div><dt>어울리는 색</dt><dd class="chips" id="colors"></dd></div>
+        <div><dt>어울리는 소재</dt><dd id="materials"></dd></div>
+        <div class="wide"><dt>오늘 해 볼 첫걸음</dt><dd id="step"></dd></div>
+      </dl>
+
+      <div class="share-row" id="mine">
+        <button class="btn" type="button" id="share">결과 공유하기</button>
+        <a class="btn ghost" href="/test">다시 하기</a>
+        <span class="toast" id="toast" aria-live="polite"></span>
+      </div>
+      <div class="share-row" id="theirs" hidden>
+        <a class="btn" href="/test">나도 테스트하기</a>
+      </div>
+
+      <section class="mail" id="mailbox">
+        <form id="form" novalidate>
+          <h2>이 스타일의 추천 아이템 받기</h2>
+          <p id="mailLead">이메일을 남기면 <b></b>에 맞는 아이템 다섯 가지를 메일로 한 번 보내 드려요.</p>
+          <div class="field">
+            <label class="hp" aria-hidden="true">웹사이트<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+            <input type="email" id="email" name="email" placeholder="이메일 주소" autocomplete="email" inputmode="email" required aria-label="이메일 주소">
+          </div>
+          <label class="agree"><input type="checkbox" id="consent">
+            <span>개인정보 수집·이용에 동의해요 (필수)<small>받는 것: 이메일 · 목적: 추천 아이템 메일 발송 · 보관: 1년 후 또는 삭제 요청 시 지워요</small></span>
+          </label>
+          <label class="agree"><input type="checkbox" id="mailConsent">
+            <span>추천 아이템 메일을 받을게요 (필수)<small>이 결과에 맞는 추천 메일을 한 번 보내요</small></span>
+          </label>
+          <button class="btn send" type="submit" id="submit">추천 아이템 받기</button>
+          <p class="msg" id="msg" role="status"></p>
+        </form>
+        <div class="done" id="done" hidden>
+          <h2>신청됐어요</h2>
+          <p id="doneText"></p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap">
+      <p class="big">공간 스타일 진단</p>
+      <p class="small">© 2026 공간 스타일 진단</p>
+    </div>
+  </footer>
+
+  <script src="/assets/data.js"></script>
+  <script src="/assets/art.js"></script>
+  <script>
+    const { STYLES } = window.STYLE_DATA;
+    const $ = (id) => document.getElementById(id);
+    const params = new URLSearchParams(location.search);
+    const key = STYLES[params.get('s')] ? params.get('s') : null;
+    if (!key) location.replace('/');
+
+    let mine = false;
+    try { mine = sessionStorage.getItem('myStyle') === key; } catch (e) {}
+
+    if (key) {
+      const s = STYLES[key];
+      document.title = `${s.name} — 공간 스타일 진단`;
+      $('door').classList.add(key);
+      $('door').innerHTML = window.STYLE_ART[key];
+      $('sname').textContent = s.name;
+      $('sline').textContent = s.line;
+      $('sdesc').textContent = s.desc;
+      $('materials').textContent = s.materials;
+      $('step').textContent = s.firstStep;
+      s.colors.forEach(([name, hex]) => {
+        const c = document.createElement('span');
+        c.className = 'chip';
+        c.innerHTML = `<i style="background:${hex}"></i><span></span>`;
+        c.lastChild.textContent = name;
+        $('colors').appendChild(c);
+      });
+      $('mailLead').querySelector('b').textContent = s.name;
+
+      if (!mine) {
+        $('kicker').textContent = '친구의 공간 스타일은';
+        $('mine').hidden = true;
+        $('theirs').hidden = false;
+        $('mailbox').hidden = true;
+      }
+    }
+
+    $('share').addEventListener('click', async () => {
+      const url = `${location.origin}/result?s=${key}`;
+      const text = `내 공간 스타일은 ${STYLES[key].name}! 너는 어떤 스타일이야?`;
+      if (navigator.share) {
+        try { await navigator.share({ title: '공간 스타일 진단', text, url }); } catch (e) {}
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+        $('toast').textContent = '링크를 복사했어요. 원하는 곳에 붙여 넣어 공유하세요.';
+      } catch (e) {
+        $('toast').textContent = url;
+      }
+    });
+
+    $('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = $('email').value.trim();
+      const msg = $('msg');
+      msg.className = 'msg err';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.textContent = '이메일 주소를 확인해 주세요.'; $('email').focus(); return; }
+      if (!$('consent').checked) { msg.textContent = '개인정보 수집·이용에 동의해 주세요.'; return; }
+      if (!$('mailConsent').checked) { msg.textContent = '추천 아이템 메일 받기에 동의해 주세요.'; return; }
+
+      $('submit').disabled = true;
+      $('submit').textContent = '보내는 중…';
+      msg.className = 'msg';
+      msg.textContent = '';
+      try {
+        const r = await fetch('/api/inquiry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email, style: key,
+            consent: $('consent').checked,
+            mailConsent: $('mailConsent').checked,
+            website: $('form').website.value,
+          }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || '신청하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+        $('form').hidden = true;
+        $('done').hidden = false;
+        $('doneText').textContent = data.mailed
+          ? `${email} 로 추천 아이템 메일을 보냈어요. 메일함을 확인해 주세요.`
+          : `${email} 로 추천 아이템 메일을 보내 드릴게요.`;
+      } catch (err) {
+        msg.className = 'msg err';
+        msg.textContent = err.message;
+        $('submit').disabled = false;
+        $('submit').textContent = '추천 아이템 받기';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>공간 스타일 진단 — 내 공간 스타일 찾기</title>
+  <meta name="description" content="집 꾸미기가 막막하다면 질문 8개에 답해 보세요. 약 2분이면 나에게 맞는 인테리어 스타일이 나와요.">
+  <meta property="og:title" content="공간 스타일 진단 — 내 공간 스타일 찾기">
+  <meta property="og:description" content="질문 8개, 약 2분. 나에게 맞는 인테리어 스타일을 알려 드려요.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#FAF8F5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&family=Gowun+Batang:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <header class="wrap top">
+    <a class="mark" href="/">공간 스타일 진단</a>
+  </header>
+
+  <main>
+    <section class="wrap hero">
+      <h1 aria-label="내 공간 스타일 찾기">
+        <span class="ln"><span>내 공간</span></span>
+        <span class="ln"><span>스타일 찾기</span></span>
+      </h1>
+
+      <div class="hero-row">
+        <div>
+          <p class="lede">우리 집, 어떤 스타일로 꾸며야 할지 막막하다면 질문 8개에 답해 보세요.</p>
+          <p class="meta">약 2분이면 끝나고, 결과는 바로 나와요.</p>
+          <a class="btn" href="/test">테스트 시작하기</a>
+        </div>
+
+        <div class="doors" aria-label="결과로 나올 수 있는 세 가지 스타일">
+          <figure><div class="door minimal" data-art="minimal"></div><figcaption>미니멀·모던</figcaption></figure>
+          <figure><div class="door natural" data-art="natural"></div><figcaption>내추럴·우드</figcaption></figure>
+          <figure><div class="door vintage" data-art="vintage"></div><figcaption>빈티지·미드센추리</figcaption></figure>
+          <p class="doors-note">이 세 가지 중 하나가 나와요.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="wrap get">
+      <h2>테스트가 끝나면 이런 걸 받아요</h2>
+      <ul class="get-list">
+        <li><b>내 인테리어 스타일</b><span>스타일 이름과 설명, 어울리는 색과 소재, 오늘 바로 해 볼 첫걸음까지 알려 드려요.</span></li>
+        <li><b>스타일별 추천 아이템</b><span>이메일을 남기면 내 스타일에 맞는 아이템 다섯 가지를 메일로 보내 드려요.</span></li>
+      </ul>
+      <!-- 후기 자리: 실제 후기가 생기면 여기에 넣는다 (PRD 6-4) -->
+      <div class="again"><a class="btn ghost" href="/test">테스트 시작하기</a></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap">
+      <p class="big">공간 스타일 진단</p>
+      <p class="small">© 2026 공간 스타일 진단</p>
+    </div>
+  </footer>
+
+  <script src="/assets/art.js"></script>
+  <script>
+    document.querySelectorAll('[data-art]').forEach((el) => { el.innerHTML = window.STYLE_ART[el.dataset.art]; });
+  </script>
+</body>
+</html>

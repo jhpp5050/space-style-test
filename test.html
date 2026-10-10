@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>테스트 — 공간 스타일 진단</title>
+  <meta name="description" content="질문 8개에 답하면 나에게 맞는 인테리어 스타일이 나와요.">
+  <meta name="theme-color" content="#FAF8F5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800;900&family=Gowun+Batang:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+  <header class="wrap top">
+    <a class="mark" href="/">공간 스타일 진단</a>
+  </header>
+
+  <main class="wrap quiz">
+    <div class="progress">
+      <span id="count" aria-live="polite">1 / 8</span>
+      <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+    </div>
+
+    <div class="stage in" id="stage">
+      <h1 class="qtext" id="q"></h1>
+      <div class="answers" id="answers" role="group" aria-labelledby="q"></div>
+    </div>
+
+    <div><button class="back" id="back" type="button">이전 질문</button></div>
+  </main>
+
+  <script src="/assets/data.js"></script>
+  <script>
+    const { QUESTIONS } = window.STYLE_DATA;
+    const picks = [];
+    let i = 0;
+    let busy = false;
+
+    const $ = (id) => document.getElementById(id);
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function render() {
+      const item = QUESTIONS[i];
+      $('count').textContent = `${i + 1} / ${QUESTIONS.length}`;
+      $('bar').style.transform = `scaleX(${i / QUESTIONS.length})`;
+      $('q').textContent = item.q;
+      $('answers').innerHTML = '';
+      item.a.forEach(([label, style], n) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'answer' + (picks[i] === n ? ' picked' : '');
+        b.innerHTML = `<span class="key">${'가나다'[n]}</span><span></span>`;
+        b.lastChild.textContent = label;
+        b.addEventListener('click', () => choose(n, b));
+        $('answers').appendChild(b);
+      });
+      $('back').disabled = i === 0;
+      const stage = $('stage');
+      stage.classList.remove('out', 'in');
+      void stage.offsetWidth;
+      stage.classList.add('in');
+    }
+
+    function score() {
+      const tally = { minimal: 0, natural: 0, vintage: 0 };
+      picks.forEach((n, qi) => { tally[QUESTIONS[qi].a[n][1]] += 1; });
+      const top = Math.max(...Object.values(tally));
+      // 동점이면 가장 마지막에 고른 답의 스타일을 우선한다
+      for (let qi = picks.length - 1; qi >= 0; qi--) {
+        const s = QUESTIONS[qi].a[picks[qi]][1];
+        if (tally[s] === top) return s;
+      }
+      return 'natural';
+    }
+
+    function choose(n, btn) {
+      if (busy) return;
+      busy = true;
+      picks[i] = n;
+      picks.length = i + 1;
+      document.querySelectorAll('.answer').forEach((b) => b.classList.remove('picked'));
+      btn.classList.add('picked');
+      $('bar').style.transform = `scaleX(${(i + 1) / QUESTIONS.length})`;
+      setTimeout(() => {
+        if (i === QUESTIONS.length - 1) {
+          const s = score();
+          try { sessionStorage.setItem('myStyle', s); } catch (e) {}
+          location.href = `/result?s=${s}`;
+          return;
+        }
+        $('stage').classList.add('out');
+        setTimeout(() => { i += 1; busy = false; render(); }, reduce ? 0 : 280);
+      }, reduce ? 0 : 320);
+    }
+
+    $('back').addEventListener('click', () => {
+      if (i === 0 || busy) return;
+      i -= 1;
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
